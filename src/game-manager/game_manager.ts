@@ -27,7 +27,7 @@ export class GameManager {
 
   public newPlayerConnection(wsCon: WebSocket): void {
     wsCon.send("online");
-
+    this.addEventHandler(wsCon)
     this.onlinePlayers.push(wsCon);
   }
 
@@ -59,6 +59,7 @@ export class GameManager {
       switch (event.type) {
         case ClientEvents.INIT: {
           this.addReadyToPlayPlayer(wsCon, event.payload);
+          break
         }
 
         case ClientEvents.MOVE: {
