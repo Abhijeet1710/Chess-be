@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export class GameManager {
   private static instance: GameManager;
-  private games: Game[] = [];
+  private runningGames: Game[] = [];
   private waitingPlayer: Player | null = null;
   private onlinePlayers: WebSocket[] = [];
 
@@ -27,29 +27,8 @@ export class GameManager {
 
   public newPlayerConnection(wsCon: WebSocket): void {
     wsCon.send("online");
-    this.addEventHandler(wsCon)
+    this.addEventHandler(wsCon);
     this.onlinePlayers.push(wsCon);
-  }
-
-  private addReadyToPlayPlayer(
-    wsCon: WebSocket,
-    userDetails: { userName: string }
-  ) {
-    if (this.waitingPlayer) {
-      // create this a second/black player
-      // create a new game and start a game
-      // send starting a game event to both the player
-    } else {
-      // no one is waiting so this player is the first/white player
-      // create a Player and keep it in waitingPlayer
-      const whitePlayer: Player = new Player(userDetails.userName, null, wsCon);
-      this.waitingPlayer = whitePlayer;
-      // send waiting for a opponent event to this player
-      this.sendEvent(wsCon, {
-        type: ServerEvents.WAITING,
-        payload: { message: WAITING_FOR_OPPONENT },
-      });
-    }
   }
 
   private addEventHandler(wsCon: WebSocket) {
@@ -59,7 +38,7 @@ export class GameManager {
       switch (event.type) {
         case ClientEvents.INIT: {
           this.addReadyToPlayPlayer(wsCon, event.payload);
-          break
+          break;
         }
 
         case ClientEvents.MOVE: {
@@ -74,6 +53,54 @@ export class GameManager {
     wsCon.on("close", (d) => {
       console.log("disconnect", d);
     });
+  }
+
+  private addReadyToPlayPlayer(
+    wsCon: WebSocket,
+    userDetails: { userName: string }
+  ) {
+    if (this.waitingPlayer) {
+      // create this a second/black player
+      const blackPlayer: Player = new Player(userDetails.userName, null, wsCon);
+
+      // create a new game and start a game
+      const newGame: Game = {
+        whitePlayer: this.waitingPlayer,
+        whitePlayersTimeRemaining: new Date().toLocaleDateString(),
+        blackPlayer,
+        blackPlayersTimeRemaining: new Date().toLocaleDateString(),
+        isWhitesTurn: true,
+      };
+
+      this.runningGames.push(newGame);
+
+      // send starting a game event to both the player
+      this.sendEvent(this.waitingPlayer.userWs, {
+        type: ServerEvents.STARTED,
+        payload: {
+            message: "You are White"
+        }
+      });
+
+      this.sendEvent(wsCon, {
+        type: ServerEvents.STARTED,
+        payload: {
+            message: "You are Black"
+        }
+      });
+
+      this.waitingPlayer = null;
+    } else {
+      // no one is waiting so this player is the first/white player
+      // create a Player and keep it in waitingPlayer
+      const whitePlayer: Player = new Player(userDetails.userName, null, wsCon);
+      this.waitingPlayer = whitePlayer;
+      // send waiting for a opponent event to this player
+      this.sendEvent(wsCon, {
+        type: ServerEvents.WAITING,
+        payload: { message: WAITING_FOR_OPPONENT },
+      });
+    }
   }
 
   private sendEvent(wsCon: WebSocket, event: any) {
