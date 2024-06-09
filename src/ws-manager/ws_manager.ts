@@ -14,7 +14,7 @@ export class WsManager {
         this.gameManager = GameManager.getInstance()
         
         this.wssServer.on('connection', (wsCon: WebSocket) => {
-            // console.log("Conn", wsCon);
+            console.log("New Conn");
             
             this.gameManager.newPlayerConnection(wsCon)
         })

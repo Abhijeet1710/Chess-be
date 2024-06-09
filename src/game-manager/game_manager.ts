@@ -36,6 +36,7 @@ export class GameManager {
   private addEventHandler(wsCon: WebSocket) {
     wsCon.on("message", (event: ClientEvent) => {
       event = JSON.parse(event.toString());
+      console.log(`${event.type} : ${JSON.stringify(event.payload)}`);
 
       switch (event.type) {
         case ClientEvents.INIT: {
@@ -110,10 +111,13 @@ export class GameManager {
   private handleMove(gameId: string, move: {from: string, to: string}) {
       const game = this.runningGames.find((g) => g.gameId == gameId)
 
-      const resp = game!.movePiece(move)
+      let resp = game!.movePiece(move)
+      let event = {type: ServerEvents.MOVE_STATUS, payload: resp}
+      console.log("handleMove resp : "+ JSON.stringify(event))
+      
 
-      this.sendEvent(game!.getWhitePlayer().userWs, resp, null)
-      this.sendEvent(game!.getBlackPlayer().userWs, resp, null)
+      this.sendEvent(game!.getWhitePlayer().userWs, event, null)
+      this.sendEvent(game!.getBlackPlayer().userWs, event, null)
   }
 
   private sendEvent(wsCon: WebSocket, event: any, statusCode: number | null) {

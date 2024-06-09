@@ -66,6 +66,7 @@ export enum ClientEvents {
 export enum ServerEvents {
     WAITING = "waiting-for-opponent",
     MOVE = "piece-move",
+    MOVE_STATUS = "piece-move-status",
     STARTED = "game-started",
     West = ""
 }
