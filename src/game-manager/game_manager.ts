@@ -1,13 +1,15 @@
 import { WebSocket } from "ws";
+import { v4 as uuidv4 } from 'uuid';
 import {
   ClientEvent,
   ClientEvents,
-  Game,
   Player,
   ServerEvents,
   WAITING_FOR_OPPONENT,
 } from "../utils/types";
-import { v4 as uuidv4 } from "uuid";
+import { Chess } from 'chess.js'
+import { Game } from "./Game";
+
 
 export class GameManager {
   private static instance: GameManager;
@@ -26,7 +28,7 @@ export class GameManager {
   }
 
   public newPlayerConnection(wsCon: WebSocket): void {
-    wsCon.send("online");
+    this.sendEvent(wsCon, {message: "online"}, 200);
     this.addEventHandler(wsCon);
     this.onlinePlayers.push(wsCon);
   }
@@ -42,6 +44,7 @@ export class GameManager {
         }
 
         case ClientEvents.MOVE: {
+            this.handleMove(event.payload.gameId, {from: event.payload.from, to: event.payload.to})
         }
       }
     });
@@ -59,35 +62,36 @@ export class GameManager {
     wsCon: WebSocket,
     userDetails: { userName: string }
   ) {
+    console.log("XX : "+userDetails.userName, this.waitingPlayer?.userName);
+
     if (this.waitingPlayer) {
       // create this a second/black player
       const blackPlayer: Player = new Player(userDetails.userName, null, wsCon);
 
       // create a new game and start a game
-      const newGame: Game = {
-        whitePlayer: this.waitingPlayer,
-        whitePlayersTimeRemaining: new Date().toLocaleDateString(),
-        blackPlayer,
-        blackPlayersTimeRemaining: new Date().toLocaleDateString(),
-        isWhitesTurn: true,
-      };
+      const newGame = new Game(this.waitingPlayer, blackPlayer)
 
+      // console.log(newGame.board.board());
       this.runningGames.push(newGame);
 
       // send starting a game event to both the player
       this.sendEvent(this.waitingPlayer.userWs, {
         type: ServerEvents.STARTED,
         payload: {
-            message: "You are White"
+            gameId: newGame.gameId,
+            message: "WHITE",
+            fen: newGame.getBoard().fen()
         }
-      });
+      }, 200);
 
       this.sendEvent(wsCon, {
         type: ServerEvents.STARTED,
         payload: {
-            message: "You are Black"
+            gameId: newGame.gameId,
+            message: "BLACK",
+            fen: newGame.getBoard().fen()
         }
-      });
+      },200);
 
       this.waitingPlayer = null;
     } else {
@@ -98,13 +102,22 @@ export class GameManager {
       // send waiting for a opponent event to this player
       this.sendEvent(wsCon, {
         type: ServerEvents.WAITING,
-        payload: { message: WAITING_FOR_OPPONENT },
-      });
+        payload: { message: WAITING_FOR_OPPONENT }
+      }, 200);
     }
   }
 
-  private sendEvent(wsCon: WebSocket, event: any) {
-    event.meta = { from: "server", time: new Date() };
+  private handleMove(gameId: string, move: {from: string, to: string}) {
+      const game = this.runningGames.find((g) => g.gameId == gameId)
+
+      const resp = game!.movePiece(move)
+
+      this.sendEvent(game!.getWhitePlayer().userWs, resp, null)
+      this.sendEvent(game!.getBlackPlayer().userWs, resp, null)
+  }
+
+  private sendEvent(wsCon: WebSocket, event: any, statusCode: number | null) {
+    event.meta = { from: "server", time: new Date(), statusCode};
     wsCon.send(JSON.stringify(event));
   }
 }

@@ -1,19 +1,23 @@
 import { WebSocket } from "ws"
 import { v4 as uuidv4 } from 'uuid';
+import { Chess } from "chess.js";
 
 export interface InItEvent {
     type: string
 }
 
-export interface Game {
-    whitePlayer: Player,
-    whitePlayersTimeRemaining: string
+// export interface Game {
+//     gameId: string,
+//     whitePlayer: Player,
+//     whitePlayersTimeRemaining: string
 
-    blackPlayer: Player
-    blackPlayersTimeRemaining: string
+//     blackPlayer: Player
+//     blackPlayersTimeRemaining: string
 
-    isWhitesTurn: boolean
-}
+//     isWhitesTurn: boolean
+
+//     board: Chess
+// }
 
 export class Player {
     userId: string
@@ -45,6 +49,7 @@ export interface ClientEvent {
 export interface ServerEvent {
     type: ServerEvents.WAITING | ClientEvents.MOVE,
     meta: {
+        statusCode: number,
         from: 'server' | null, 
         time: Date
     },
@@ -52,8 +57,8 @@ export interface ServerEvent {
 }
 
 export enum ClientEvents {
-    INIT = "init-game",
-    MOVE = "piece-move",
+    INIT = "init",
+    MOVE = "move",
     South = "",
     West = ""
 }
