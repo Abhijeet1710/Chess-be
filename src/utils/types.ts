@@ -59,6 +59,7 @@ export interface ServerEvent {
 export enum ClientEvents {
     INIT = "init",
     MOVE = "move",
+    QUITE = "quite",
     South = "",
     West = ""
 }
@@ -68,7 +69,14 @@ export enum ServerEvents {
     MOVE = "piece-move",
     MOVE_STATUS = "piece-move-status",
     STARTED = "game-started",
+    OVER = "game-over",
+    quite = "game-quite",
     West = ""
+}
+
+export enum PlayerColor {
+    WHITE = "WHITE",
+    BLACK = "BLACK"
 }
 
 export const WAITING_FOR_OPPONENT = "Waiting for an opponent to join"
