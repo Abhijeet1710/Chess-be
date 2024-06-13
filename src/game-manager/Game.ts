@@ -32,16 +32,15 @@ export class Game {
         return this.board
     }
 
-    movePiece(move: {from: string, to: string}): {success: boolean, message: string, fen: string} {
+    movePiece(move: {from: string, to: string, promotion: string | undefined}): {success: boolean, message: string, fen: string, move: {from: string, to: string} | null} {
         try {
+            console.log("Received Move", move);
+            
             this.board.move(move)
+            return {success: true, move, message: "Valid Move", fen: this.board.fen()}
+        }catch(er) { }
 
-            return {success: true, message: "Valid Move", fen: this.board.fen()}
-        }catch(er) {
-
-        }
-
-        return {success: false, message: "Invalid Move", fen: this.board.fen()}
+        return {success: false, move: null, message: "Invalid Move", fen: this.board.fen()}
     }
 
 }

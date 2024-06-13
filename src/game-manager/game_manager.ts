@@ -16,7 +16,6 @@ export class GameManager {
   private runningGames: Map<string, Game> = new Map();
   private userName_gameId: Map<string, string> = new Map();
   private waitingPlayer: Player | null = null;
-  private onlinePlayers: WebSocket[] = [];
 
   private constructor() {}
 
@@ -29,30 +28,30 @@ export class GameManager {
   }
 
   public newPlayerConnection(wsCon: WebSocket): void {
-    this.sendEvent(wsCon, { message: "online" }, 200);
+    // this.sendEvent(wsCon, { message: "online" }, 200);
     this.addEventHandler(wsCon);
-    this.onlinePlayers.push(wsCon);
-
-    console.log("Tortal online players", this.onlinePlayers.length);
   }
 
   private addEventHandler(wsCon: WebSocket) {
     wsCon.on("message", (event: ClientEvent) => {
       event = JSON.parse(event.toString());
-      console.log(`${event.type} : ${JSON.stringify(event.payload)}`);
+      console.log(`REC : ${event.type} : ${JSON.stringify(event.payload)}`);
 
       switch (event.type) {
-        case ClientEvents.INIT: {
+        case ClientEvents.INIT:
           this.addReadyToPlayPlayer(wsCon, event.payload);
           break;
-        }
 
-        case ClientEvents.MOVE: {
+        case ClientEvents.MOVE:
           this.handleMove(event.payload.gameId, {
             from: event.payload.from,
             to: event.payload.to,
+            promotion: event.payload.promotion
           });
-        }
+          break;
+        default: 
+          console.log("No handler/response for this event", event);
+          
       }
     });
 
@@ -73,6 +72,8 @@ export class GameManager {
     wsCon: WebSocket,
     userDetails: { userName: string }
   ) {
+    console.log("ready to play", userDetails.userName);
+    
     // If this is the waiting player
     if (this.waitingPlayer?.userName == userDetails.userName) {
       this.sendEvent(
@@ -103,35 +104,35 @@ export class GameManager {
       this.userName_gameId.set(blackPlayer.userName, newGame.gameId)
 
       // setTimeout for the game
-      setTimeout(() => {
-        console.log("removing", newGame.gameId);
+      // setTimeout(() => {
+      //   console.log("removing", newGame.gameId);
         
-        this.runningGames.delete(newGame.gameId);
-        this.userName_gameId.delete(newGame.getWhitePlayer().userName)
-        this.userName_gameId.delete(newGame.getBlackPlayer().userName)
-        // send starting a game event to both the player
-        this.sendEvent(
-          newGame.getBlackPlayer().userWs,
-          {
-            type: ServerEvents.OVER,
-            payload: {
-              gameId: newGame.gameId,
-            },
-          },
-          200
-        );
+      //   this.runningGames.delete(newGame.gameId);
+      //   this.userName_gameId.delete(newGame.getWhitePlayer().userName)
+      //   this.userName_gameId.delete(newGame.getBlackPlayer().userName)
+      //   // send starting a game event to both the player
+      //   this.sendEvent(
+      //     newGame.getBlackPlayer().userWs,
+      //     {
+      //       type: ServerEvents.OVER,
+      //       payload: {
+      //         gameId: newGame.gameId,
+      //       },
+      //     },
+      //     200
+      //   );
 
-        this.sendEvent(
-          newGame.getWhitePlayer().userWs,
-          {
-            type: ServerEvents.OVER,
-            payload: {
-              gameId: newGame.gameId,
-            },
-          },
-          200
-        );
-      }, 120000);
+      //   this.sendEvent(
+      //     newGame.getWhitePlayer().userWs,
+      //     {
+      //       type: ServerEvents.OVER,
+      //       payload: {
+      //         gameId: newGame.gameId,
+      //       },
+      //     },
+      //     200
+      //   );
+      // }, 120000);
 
       // send starting a game event to both the player
       this.sendEvent(
@@ -178,12 +179,11 @@ export class GameManager {
     }
   }
 
-  private handleMove(gameId: string, move: { from: string; to: string }) {
+  private handleMove(gameId: string, move: { from: string; to: string, promotion: string | undefined }) {
     const game = this.runningGames.get(gameId);
 
     let resp = game!.movePiece(move);
     let event = { type: ServerEvents.MOVE_STATUS, payload: resp };
-    console.log("handleMove resp : " + JSON.stringify(event));
 
     this.sendEvent(game!.getWhitePlayer().userWs, event, null);
     this.sendEvent(game!.getBlackPlayer().userWs, event, null);
@@ -191,6 +191,8 @@ export class GameManager {
 
   private sendEvent(wsCon: WebSocket, event: any, statusCode: number | null) {
     if(wsCon.OPEN) {
+      console.log("RESP : " + JSON.stringify(event));
+
       event.meta = { from: "server", time: new Date(), statusCode };
       wsCon.send(JSON.stringify(event));
     }

@@ -57,9 +57,9 @@ export interface ServerEvent {
 }
 
 export enum ClientEvents {
-    INIT = "init",
-    MOVE = "move",
-    QUITE = "quite",
+    INIT = "init-game",
+    MOVE = "move-piece",
+    QUITE = "quite-game",
     South = "",
     West = ""
 }
