@@ -143,6 +143,8 @@ export class GameManager {
             gameId: newGame.gameId,
             message: PlayerColor.WHITE,
             fen: newGame.getBoard().fen(),
+            blackPlayer: newGame.getBlackPlayer().userName,
+            whitePlayer: newGame.getWhitePlayer().userName
           },
         },
         200
@@ -156,6 +158,8 @@ export class GameManager {
             gameId: newGame.gameId,
             message: PlayerColor.BLACK,
             fen: newGame.getBoard().fen(),
+            blackPlayer: newGame.getBlackPlayer().userName,
+            whitePlayer: newGame.getWhitePlayer().userName
           },
         },
         200
